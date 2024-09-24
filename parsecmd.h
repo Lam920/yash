@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <sys/types.h>
+#include <unistd.h> 
+#include <errno.h> 
+#include <sys/wait.h>
 
 #define EXEC 1
 #define FILE_REDIRECTION 2
@@ -14,7 +17,7 @@
 
 #define NUM_OF_PIPE 1
 
-int parsercmd(char *input_cmd);
+int runcmd(char *user_input, pid_t pid);
 
 struct cmd* init_cmd(int type_cmd);
 
@@ -36,9 +39,9 @@ struct exec_cmd
 struct file_cmd
 {
     int type;
-    char cmd_exec[MAXLENGTH_CMD];
     char file_name[16];
     int fd; // stdin, stdout, stderr
+    struct cmd* cmd; //point to cmd to execute
 };
 
 struct pipe_cmd
