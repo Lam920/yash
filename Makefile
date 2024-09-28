@@ -14,7 +14,7 @@ EXECS=$(SOURCES:%.c=%)
 
 .PHONY: all
 all: $(OBJECTS)
-	gcc -o main parsecmd.o main.o
+	gcc -o main util.o parsecmd.o main.o
 
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@

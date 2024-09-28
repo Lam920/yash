@@ -13,9 +13,11 @@ int main()
     while(1){
         memset(user_input, 0, MAXLENGTH_CMD);
         printf("# ");
+        fflush(stdin);
         fgets(user_input, MAXLENGTH_CMD, stdin);
         if (!strcmp(user_input, "\n")) continue;
         user_input[strlen(user_input) - 1] = '\0'; 
+        //printf("Get user input: %s\n", user_input);
         runcmd(user_input, pid);
     }
     return 0;

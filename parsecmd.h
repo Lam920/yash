@@ -5,6 +5,9 @@
 #include <unistd.h> 
 #include <errno.h> 
 #include <sys/wait.h>
+#include <fcntl.h>
+#include "util.h"
+
 
 #define EXEC 1
 #define FILE_REDIRECTION 2
@@ -14,6 +17,7 @@
 #define DELIMITER_MAXLENGTH 3
 #define MAXLENGTH_CMD 2000
 #define MAX_ARGC 10
+#define MAXLENGTH_FILENAME 64
 
 #define NUM_OF_PIPE 1
 
@@ -39,7 +43,8 @@ struct exec_cmd
 struct file_cmd
 {
     int type;
-    char file_name[16];
+    char cmd_file[MAXLENGTH_CMD];
+    char file_name[MAXLENGTH_FILENAME];
     int fd; // stdin, stdout, stderr
     struct cmd* cmd; //point to cmd to execute
 };
