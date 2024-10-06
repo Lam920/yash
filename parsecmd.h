@@ -84,6 +84,7 @@ typedef struct exec_cmd exec_cmd_t;
 struct background_process 
 {
     pid_t pid;
+    pid_t pgid;
     int status;
     char cmd[MAXLENGTH_CMD];
 };

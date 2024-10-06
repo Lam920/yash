@@ -142,8 +142,8 @@ ll_node_t *ll_find_pid(linked_list_t *list, pid_t pid){
   while (curr != NULL) {
     bgprocess_tmp = (struct background_process *)curr->object;
     if (bgprocess_tmp->pid == pid) {
-      bgprocess_tmp->status = 2;
-      printf("process with pid: %d and cmd: %s done!\n", bgprocess_tmp->pid, bgprocess_tmp->cmd);
+      bgprocess_tmp->status = 3;
+      printf("****** process with pid: %d and cmd: %s done! ******\n", bgprocess_tmp->pid, bgprocess_tmp->cmd);
       ll_remove(list, curr);
       return curr;
     }

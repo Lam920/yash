@@ -17,7 +17,7 @@ void handle_sigchld(int sig)
 {
     pid_t child_pid = 0;
     int status;
-    printf("Caugh sigchld\n");
+    printf("Caught sigchld\n");
     while ((child_pid = waitpid(-1, &status, WNOHANG)) > 0){
         printf("Parent get SIGCHLD from child: %d\n", child_pid);
         //find pid and remove from linked list when it done
@@ -26,20 +26,17 @@ void handle_sigchld(int sig)
     }
 }
 
-void handle_sigtstp(int sig){
-    // printf("Caught SIGTSTP from pid: %d\n", getpid());
-    // raise(SIGSTOP);
-}
-
 static void handler(int sig){
     switch(sig){
-        case SIGTSTP:
-            printf("Caught SIGTSTP\n");
-            handle_sigtstp(sig);
-            break;
+        // case SIGTSTP:
+        //     printf("Caught SIGTSTP\n");
+        //     handle_sigtstp(sig);
+        //     break;
         case SIGCHLD:
             handle_sigchld(sig);
             break;
+        case SIGCONT:
+            
         default: 
             break;
     }
@@ -56,15 +53,14 @@ int main()
     sa.sa_handler = handler;
     if (sigaction(SIGCHLD, &sa, NULL) == -1)
         return -1;
-    if (sigaction(SIGTSTP, &sa, NULL) == -1)
-        return -1;
+    // if (sigaction(SIGTSTP, &sa, NULL) == -1)
+        // return -1;
     if (sigaction(SIGCONT, &sa, NULL) == -1)
         return -1;
     // if (sigaction(SIGQUIT, &sa, NULL) == -1)
     //     return -1;
 
     pid_t pid;
-    printf("Create linked list for bgprocess\n");
     background_process_list = ll_create();
     while (1)
     {
