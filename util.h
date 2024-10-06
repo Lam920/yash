@@ -7,6 +7,8 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
+
+#define _GNU_SOURCE
 void remove_spaces(char* s);
 
 int check_process_status(pid_t pid, int status);

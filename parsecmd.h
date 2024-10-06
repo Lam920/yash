@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include "util.h"
+#include "linkedlist.h"
 
 #define EXEC 1
 #define FILE_REDIRECTION 2
@@ -21,6 +22,14 @@
 #define WCONTINUED 8 /* Report continued child.  */
 
 #define NUM_OF_PIPE 1
+
+
+//Define for process status in background
+#define PENDING 0
+#define RUNNING 1
+#define STOPPED 2
+#define TERMINATE 3
+
 
 int runcmd(char *user_input, pid_t pid);
 
@@ -59,6 +68,24 @@ struct pipe_cmd
     struct cmd *cmd_right;
 };
 
+struct back_cmd 
+{
+    int type;
+    char cmd_back[MAXLENGTH_CMD];
+    struct cmd *cmd;
+};
+
 typedef struct file_cmd file_cmd_t;
 typedef struct pipe_cmd pipe_cmd_t;
 typedef struct exec_cmd exec_cmd_t;
+
+
+
+struct background_process 
+{
+    pid_t pid;
+    int status;
+    char cmd[MAXLENGTH_CMD];
+};
+
+extern linked_list_t *background_process_list;
