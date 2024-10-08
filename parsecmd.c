@@ -87,6 +87,26 @@ static void parse_execcmd(struct exec_cmd *ecmd)
     ecmd->argv[ecmd->argc] = NULL;
 }
 
+static void parse_filecmd(struct file_cmd *fcmd, int delimiter_idx){
+    char *token;
+    char *delimiter_file = delimiter[delimiter_idx];
+    printf("helimiter file: %s\n", delimiter_file);
+    char *cmd_exec = NULL;
+    token = strtok(fcmd->cmd_file, delimiter_file);
+    cmd_exec = token;
+    memcpy(fcmd->cmd_exec, cmd_exec, strlen(cmd_exec));
+    while (token)
+    {
+        printf("file token: %s\n", token);
+        memset(fcmd->file_name, 0, MAXLENGTH_FILENAME);
+        strncpy(fcmd->file_name, token, strlen(token));
+        token = strtok(NULL, delimiter_file);
+    }
+    // get file decriptor to redirect
+    fcmd->fd = get_std_redirect(delimiter_idx);
+    remove_spaces(fcmd->file_name);
+}
+
 void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
 {
     // printf("Do exec cmd\n");
@@ -147,7 +167,10 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     {
         process_control_terminal_id = pid;
         setpgid(pid, pid);
-        wait_flag = WUNTRACED | WCONTINUED;
+        if (background)
+            wait_flag = WNOHANG;
+        else 
+            wait_flag = WUNTRACED | WCONTINUED;
     }
     else
     {
@@ -186,34 +209,26 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     free(ecmd);
 }
 
-void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx)
+void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx, int background)
 {
     printf("Enter do_filecmd with delimiter_idx: %d\n", delimiter_idx);
-    char *token;
-    char *delimiter_file = delimiter[delimiter_idx];
-    printf("helimiter file: %s\n", delimiter_file);
-    char *cmd_exec = NULL;
-    int status;
+    
+    int status, wait_flag;
 
-    // We need a cmd_exec to exec before redirect
-    struct exec_cmd *ecmd = (struct exec_cmd *)init_cmd(EXEC);
-    token = strtok(fcmd->cmd_file, delimiter_file);
-    cmd_exec = token;
-    while (token)
+    if (background)
     {
-        printf("file token: %s\n", token);
-        memset(fcmd->file_name, 0, MAXLENGTH_FILENAME);
-        strncpy(fcmd->file_name, token, strlen(token));
-        token = strtok(NULL, delimiter_file);
+        wait_flag = WNOHANG;
+    }
+    else
+    {
+        wait_flag = WCONTINUED | WUNTRACED;
     }
 
-    // get file decriptor to redirect
-    fcmd->fd = get_std_redirect(delimiter_idx);
+    // We need a cmd_exec to exec before redirect
+    parse_filecmd(fcmd, delimiter_idx);
 
-    printf("Get file to redirect: %s\n", fcmd->file_name);
-    remove_spaces(fcmd->file_name);
-
-    memcpy(ecmd->cmd_exec, cmd_exec, strlen(cmd_exec));
+    struct exec_cmd *ecmd = (struct exec_cmd *)init_cmd(EXEC);
+    memcpy(ecmd->cmd_exec, fcmd->cmd_exec, strlen(fcmd->cmd_exec));
 
     pid = fork();
     if (pid == -1)
@@ -232,8 +247,14 @@ void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx)
         exit(0);
     }
     setpgid(pid, pid); // set pgid for child process
-    check_process_status(pid, status);
-
+    tcsetpgrp(0, pid);
+    if (background)
+    {
+        add_background_process(pid, pid, RUNNING, ecmd->cmd_exec);
+    }
+    //check_process_status(pid, status);
+    pid_t ret_child_pid = waitpid(-pid, &status, wait_flag);
+    tcsetpgrp(0, getpid());
     free(ecmd);
     free(fcmd);
 }
@@ -400,7 +421,12 @@ void do_backcmd(struct back_cmd *bcmd, pid_t pid)
 
 int runcmd(char *user_input, pid_t pid)
 {
-    int delimiter_idx = 0;
+    int background, delimiter_idx = 0;
+    char last_char = getLastNonSpaceChar(user_input);
+    if (last_char == '&')
+        background = 1;
+    else background = 0;
+
     int type_cmd = getcmd_type(delimiter, user_input, DELIMITER_NUM, &delimiter_idx);
     struct cmd *cmd = init_cmd(type_cmd);
     struct exec_cmd *ecmd;
@@ -414,17 +440,17 @@ int runcmd(char *user_input, pid_t pid)
         ecmd = (struct exec_cmd *)cmd;
         // printf("User input before exec: %s\n", user_input);
         strncpy(ecmd->cmd_exec, user_input, strlen(user_input));
-        do_execcmd(ecmd, pid, EXEC, 0);
+        do_execcmd(ecmd, pid, EXEC, background);
         break;
     case FILE_REDIRECTION:
         fcmd = (struct file_cmd *)cmd;
         memcpy(fcmd->cmd_file, user_input, strlen(user_input));
-        do_filecmd(fcmd, pid, delimiter_idx);
+        do_filecmd(fcmd, pid, delimiter_idx, background);
         break;
     case PIPE:
         pcmd = (struct pipe_cmd *)cmd;
         memcpy(pcmd->cmd_pipe, user_input, strlen(user_input));
-        do_pipecmd(pcmd, pid, 0);
+        do_pipecmd(pcmd, pid, background);
         break;
     case BACKGROUND:
         printf("Do background job\n");

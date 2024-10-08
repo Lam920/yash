@@ -56,6 +56,7 @@ struct file_cmd
     int type;
     char cmd_file[MAXLENGTH_CMD];
     char file_name[MAXLENGTH_FILENAME];
+    char cmd_exec[MAXLENGTH_CMD];
     int fd;          // stdin, stdout, stderr
     struct cmd *cmd; // point to cmd to execute
 };

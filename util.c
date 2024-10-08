@@ -52,3 +52,16 @@ int get_std_redirect(int delimiter_idx){
     }
     return fd;
 }
+
+char getLastNonSpaceChar(char *str) {
+    int i, length = strlen(str);
+    char last_char;
+    for (i = length - 1; i >= 0; i--) {
+        if (str[i] != ' ') {
+            last_char = str[i];
+            if (str[i] == '&') str[i] = '\0';
+            return last_char;
+        }
+    }
+    return '\0';
+}

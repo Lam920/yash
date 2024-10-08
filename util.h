@@ -14,3 +14,4 @@ void remove_spaces(char* s);
 int check_process_status(pid_t pid, int status);
 
 int get_std_redirect(int delimiter_idx);
+char getLastNonSpaceChar(char *str);
