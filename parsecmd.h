@@ -13,7 +13,7 @@
 #define FILE_REDIRECTION 2
 #define PIPE 3
 #define BACKGROUND 4
-#define DELIMITER_NUM 5
+#define DELIMITER_NUM 4
 #define DELIMITER_MAXLENGTH 3
 #define MAXLENGTH_CMD 2000
 #define MAX_ARGC 10
@@ -23,13 +23,11 @@
 
 #define NUM_OF_PIPE 1
 
-
-//Define for process status in background
+// Define for process status in background
 #define PENDING 0
 #define RUNNING 1
 #define STOPPED 2
 #define TERMINATE 3
-
 
 int runcmd(char *user_input, pid_t pid);
 
@@ -69,7 +67,7 @@ struct pipe_cmd
     struct cmd *cmd_right;
 };
 
-struct back_cmd 
+struct back_cmd
 {
     int type;
     char cmd_back[MAXLENGTH_CMD];
@@ -80,9 +78,7 @@ typedef struct file_cmd file_cmd_t;
 typedef struct pipe_cmd pipe_cmd_t;
 typedef struct exec_cmd exec_cmd_t;
 
-
-
-struct background_process 
+struct background_process
 {
     pid_t pid;
     pid_t pgid;
