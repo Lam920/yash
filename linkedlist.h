@@ -4,7 +4,8 @@
 #include "util.h"
 
 /** Node in the linked list. */
-struct ll_node {
+struct ll_node
+{
   struct ll_node *next;
   struct ll_node *prev;
   void *object;
@@ -12,13 +13,13 @@ struct ll_node {
 typedef struct ll_node ll_node_t;
 
 /** A linked list. */
-struct linked_list {
+struct linked_list
+{
   ll_node_t *head;
   ll_node_t *tail;
   unsigned int length;
 };
 typedef struct linked_list linked_list_t;
-
 
 /**
  * Creates a new linked list and returns it. This must be freed later with
@@ -98,7 +99,7 @@ void *ll_remove(linked_list_t *list, ll_node_t *node);
  */
 ll_node_t *ll_find(linked_list_t *list, void *object);
 
-ll_node_t *ll_find_pid(linked_list_t *list, pid_t pid);
+ll_node_t *ll_find_pid(linked_list_t *list, pid_t pid, linked_list_t *list_done);
 
 /**
  * Returns the first element in the list.
@@ -115,6 +116,9 @@ ll_node_t *ll_back(linked_list_t *list);
  */
 unsigned int ll_length(linked_list_t *list);
 
+void freeList(linked_list_t *list);
+
 void print_bgprocess_list(linked_list_t *list);
+char *get_process_state(int status);
 
 #endif /* LINKEDLIST_H */

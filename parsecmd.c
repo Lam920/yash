@@ -44,6 +44,9 @@ void update_background_process(pid_t ret_child_pid, int status, char *cmd)
 {
     if (WSTOPSIG(status) == SIGTSTP)
     {
+#ifdef DEBUG
+        printf("Caught SIGTSTP\n");
+#endif
         struct background_process *bgprocess_info;
         bgprocess_info = (struct background_process *)malloc(sizeof(struct background_process));
         bgprocess_info->pid = ret_child_pid;
@@ -58,12 +61,13 @@ void add_background_process(pid_t pid, pid_t pgid, int status, char *cmd)
 {
     struct background_process *bgprocess_info;
     bgprocess_info = (struct background_process *)malloc(sizeof(struct background_process));
+    memset(bgprocess_info, 0, sizeof(struct background_process));
     bgprocess_info->pid = pid;
     bgprocess_info->pgid = pgid;
     bgprocess_info->status = status;
     strncpy(bgprocess_info->cmd, cmd, strlen(cmd));
     ll_add_front(background_process_list, (struct background_process *)bgprocess_info);
-    printf("Now we have %d background process\n", ll_length(background_process_list));
+    // printf("Now we have %d background process\n", ll_length(background_process_list));
 }
 
 static void parse_execcmd(struct exec_cmd *ecmd)
@@ -122,6 +126,15 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     {
         do_fg_bg = 2;
     }
+
+    if (do_fg_bg)
+    {
+        if (ll_length(background_process_list) < 1)
+        {
+            printf("No background process is running...\n");
+            return;
+        }
+    }
     // fork for child to execute command
     pid_t parent_pid = getpid();
     pid = fork();
@@ -142,12 +155,12 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
         }
         else if (do_fg_bg != 0)
         {
-            printf("Do foreground/background job\n");
+            // printf("Do foreground/background job\n");
             int status;
             ll_node_t *fg_node = ll_front(background_process_list);
-            struct background_process *fg_process_info = (struct background_process *)fg_node->object;
-            printf("Now foreground/background job will execute cmd: %s  with pid: %d\n", fg_process_info->cmd, fg_process_info->pid);
-            // Send SIGCONT to continue execute and WAIT
+            fg_process_info = (struct background_process *)fg_node->object;
+            //   printf("Now foreground/background job will execute cmd: %s  with pid: %d\n", fg_process_info->cmd, fg_process_info->pid);
+            //   Send SIGCONT to continue execute and WAIT
             kill(-fg_process_info->pgid, SIGCONT);
             exit(0);
         }
@@ -162,7 +175,7 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     }
 
     pid_t process_control_terminal_id;
-    struct background_process *fg_process_info;
+    // struct background_process *fg_process_info;
 
     if (do_fg_bg == 0)
     {
@@ -185,15 +198,12 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
         if (do_fg_bg == 1)
             wait_flag = WUNTRACED;
         else
+        {
             wait_flag = WNOHANG;
+        }
+        fg_process_info->status = RUNNING;
     }
-
-    // printf("Do cmd for pid: %d of parent: %d\n", pid, getpid());
-    // printf("Process control terminal: %d\n", tcgetpgrp(0));
-
     tcsetpgrp(0, process_control_terminal_id);
-    // printf("Before terminal is control of process group: %d\n", tcgetpgrp(0));
-    //  check_process_status(pid, status);
     pid_t ret_child_pid = waitpid(-process_control_terminal_id, &status, wait_flag);
     tcsetpgrp(0, getpid());
     // printf("[%s-%d]Process %d is stop by signal: %d\n", __FUNCTION__, __LINE__, ret_child_pid, WSTOPSIG(status));

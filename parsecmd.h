@@ -87,3 +87,5 @@ struct background_process
 };
 
 extern linked_list_t *background_process_list;
+extern linked_list_t *background_process_done_list;
+extern struct background_process *fg_process_info;

@@ -7,6 +7,8 @@
 
 char user_input[MAXLENGTH_CMD];
 linked_list_t *background_process_list = NULL;
+linked_list_t *background_process_done_list = NULL;
+struct background_process *fg_process_info = NULL;
 
 void handle_sigttou(int sig)
 {
@@ -23,7 +25,7 @@ void handle_sigchld(int sig)
     {
         // printf("Parent get SIGCHLD from child: %d\n", child_pid);
         // find pid and remove from linked list when it done
-        ll_find_pid(background_process_list, child_pid);
+        ll_find_pid(background_process_list, child_pid, background_process_done_list);
         continue;
     }
 }
@@ -66,6 +68,7 @@ int main()
 
     pid_t pid;
     background_process_list = ll_create();
+    background_process_done_list = ll_create();
     while (1)
     {
         memset(user_input, 0, MAXLENGTH_CMD);
@@ -73,7 +76,12 @@ int main()
         fflush(stdin);
         fgets(user_input, MAXLENGTH_CMD, stdin);
         if (!strcmp(user_input, "\n"))
+        {
+            print_bgprocess_list(background_process_done_list);
+            freeList(background_process_done_list);
             continue;
+        }
+
         user_input[strlen(user_input) - 1] = '\0';
         runcmd(user_input, pid);
     }
