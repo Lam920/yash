@@ -102,7 +102,6 @@ static void parse_filecmd(struct file_cmd *fcmd, int delimiter_idx)
     memcpy(fcmd->cmd_exec, cmd_exec, strlen(cmd_exec));
     while (token)
     {
-        // printf("file token: %s\n", token);
         memset(fcmd->file_name, 0, MAXLENGTH_FILENAME);
         strncpy(fcmd->file_name, token, strlen(token));
         token = strtok(NULL, delimiter_file);
@@ -114,8 +113,8 @@ static void parse_filecmd(struct file_cmd *fcmd, int delimiter_idx)
 
 void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
 {
-    // printf("Do exec cmd\n");
     int status, do_fg_bg = 0, wait_flag = WUNTRACED;
+    pid_t process_control_terminal_id;
     parse_execcmd(ecmd);
 
     if (!strcmp("fg", ecmd->cmd_exec))
@@ -136,7 +135,6 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
         }
     }
     // fork for child to execute command
-    pid_t parent_pid = getpid();
     pid = fork();
     if (pid == -1)
     {
@@ -155,11 +153,8 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
         }
         else if (do_fg_bg != 0)
         {
-            // printf("Do foreground/background job\n");
-            int status;
             ll_node_t *fg_node = ll_front(background_process_list);
             fg_process_info = (struct background_process *)fg_node->object;
-            //   printf("Now foreground/background job will execute cmd: %s  with pid: %d\n", fg_process_info->cmd, fg_process_info->pid);
             //   Send SIGCONT to continue execute and WAIT
             kill(-fg_process_info->pgid, SIGCONT);
             exit(0);
@@ -173,9 +168,6 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     {
         add_background_process(pid, pid, RUNNING, ecmd->cmd_exec);
     }
-
-    pid_t process_control_terminal_id;
-    // struct background_process *fg_process_info;
 
     if (do_fg_bg == 0)
     {
@@ -206,7 +198,6 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
     tcsetpgrp(0, process_control_terminal_id);
     pid_t ret_child_pid = waitpid(-process_control_terminal_id, &status, wait_flag);
     tcsetpgrp(0, getpid());
-    // printf("[%s-%d]Process %d is stop by signal: %d\n", __FUNCTION__, __LINE__, ret_child_pid, WSTOPSIG(status));
     if (do_fg_bg)
     {
         strncpy(ecmd->cmd_exec, fg_process_info->cmd, strlen(fg_process_info->cmd));
@@ -214,7 +205,6 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
 
     /* If receive SIGTSTP ==> Update background process */
     update_background_process(ret_child_pid, status, ecmd->cmd_exec);
-    // printf("After terminal is control of process group: %d\n", tcgetpgrp(0));
 
     //  free execute cmd after execute
     free(ecmd);
@@ -222,8 +212,6 @@ void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
 
 void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx, int background)
 {
-    // printf("Enter do_filecmd with delimiter_idx: %d\n", delimiter_idx);
-
     int status, wait_flag;
 
     if (background)
@@ -263,7 +251,6 @@ void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx, int backgro
     {
         add_background_process(pid, pid, RUNNING, ecmd->cmd_exec);
     }
-    // check_process_status(pid, status);
     pid_t ret_child_pid = waitpid(-pid, &status, wait_flag);
     tcsetpgrp(0, getpid());
     free(ecmd);
@@ -291,7 +278,6 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
     int type_cmd_left = 0, type_cmd_right = 0;
     int delimiter_left_idx = 0, delimiter_right_idx = 0;
 
-    pid_t parent_pid = getpid();
     pid_t parent_pgid = getpgrp();
 
     /* Left and right cmd can be fcmd or ecmd */
@@ -303,25 +289,19 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
     char cmd_pipe_back[MAXLENGTH_CMD] = {0};
     strncpy(cmd_pipe_back, pcmd->cmd_pipe, strlen(pcmd->cmd_pipe));
     token = strtok(pcmd->cmd_pipe, delimiter_pipe);
-    // printf("first cmd: %s\n", token);
     /* Check whether left cmd is EXEC/FILE_REDIRECTION */
     type_cmd_left = getcmd_type(delimiter, token, DELIMITER_NUM, &delimiter_left_idx);
     type_cmd_right = EXEC;
-    // printf("Hello\n");
     if (type_cmd_left == FILE_REDIRECTION)
     {
         strncpy(fcmd_left->cmd_file, token, strlen(token));
         parse_filecmd(fcmd_left, delimiter_left_idx);
         memcpy(ecmd_left->cmd_exec, fcmd_left->cmd_exec, strlen(fcmd_left->cmd_exec));
-        // parse_execcmd(ecmd_left);
     }
     else
     {
         strncpy(ecmd_left->cmd_exec, token, strlen(token));
-        // parse_execcmd(ecmd_left);
     }
-
-    // printf("hi\n");
 
     /* Check whether right cmd is EXEC/FILE_REDIRECTION */
     while (token)
@@ -333,16 +313,12 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
         if (type_cmd_right == FILE_REDIRECTION)
         {
             strncpy(fcmd_right->cmd_file, token, strlen(token));
-            // printf("Now parse filecmd2\n");
             parse_filecmd(fcmd_right, delimiter_right_idx);
-            // printf("Done parse\n");
             memcpy(ecmd_right->cmd_exec, fcmd_right->cmd_exec, strlen(fcmd_right->cmd_exec));
-            // parse_execcmd(ecmd_right);
         }
         else
         {
             strncpy(ecmd_right->cmd_exec, token, strlen(token));
-            // parse_execcmd(ecmd_right);
         }
         break;
     }
@@ -357,7 +333,6 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
     if (cpid_left == 0)
     {
         setpgid(0, 0);
-        // printf("Get process group of left_child: %d\n", getpgrp());
         dup2(pipefd[1], STDOUT_FILENO);
         if (type_cmd_left == FILE_REDIRECTION)
         {
@@ -381,7 +356,6 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
             dup2(pipefd[0], STDIN_FILENO);
             if (type_cmd_right == FILE_REDIRECTION)
             {
-                // printf("fcmd_right fd to replace: %d\n", fcmd_right->fd);
                 int fd = open(fcmd_right->file_name, O_CREAT | O_RDWR, 0666);
                 dup2(fd, fcmd_right->fd);
             }
@@ -405,14 +379,10 @@ void do_pipecmd(struct pipe_cmd *pcmd, pid_t pid, int delimiter_idx, int backgro
             close(pipefd[1]);
             close(pipefd[0]);
             pid_t first_end = waitpid(-cpid_left, &status, wait_flag);
-            // printf("Process %d exit with status: %d\n", first_end, status);
             //  waitpid(-cpid_left, (int *)NULL, WUNTRACED | WCONTINUED);
             pid_t second_end = waitpid(-cpid_left, &status, wait_flag);
-            // printf("Process2 %d exit with status: %d and WEXITSTATUS: %d\n", second_end, status, WEXITSTATUS(status));
-            // printf("**Update background process list with pcmd: %s\n", cmd_pipe_back);
             update_background_process(cpid_left, status, cmd_pipe_back);
             tcsetpgrp(0, parent_pgid);
-            // printf("After terminal is control of process group: %d\n", tcgetpgrp(0));
             free(ecmd_left);
             free(ecmd_right);
             free(fcmd_left);
@@ -547,7 +517,7 @@ struct cmd *init_cmd(int type)
         run_cmd = init_pipecmd();
         break;
     case BACKGROUND:
-        printf("Init background cmd\n");
+        // printf("Init background cmd\n");
         run_cmd = init_backcmd();
         break;
     default:
