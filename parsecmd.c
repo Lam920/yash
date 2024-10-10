@@ -44,6 +44,7 @@ void update_background_process(pid_t ret_child_pid, int status, char *cmd)
 {
     if (WSTOPSIG(status) == SIGTSTP)
     {
+        printf("Caught SIGTSTP\n");
 #ifdef DEBUG
         printf("Caught SIGTSTP\n");
 #endif
@@ -252,6 +253,7 @@ void do_filecmd(struct file_cmd *fcmd, pid_t pid, int delimiter_idx, int backgro
         add_background_process(pid, pid, RUNNING, ecmd->cmd_exec);
     }
     pid_t ret_child_pid = waitpid(-pid, &status, wait_flag);
+    update_background_process(ret_child_pid, status, ecmd->cmd_exec);
     tcsetpgrp(0, getpid());
     free(ecmd);
     free(fcmd);
