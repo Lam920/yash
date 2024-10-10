@@ -115,6 +115,7 @@ static void parse_filecmd(struct file_cmd *fcmd, int delimiter_idx)
 void do_execcmd(struct exec_cmd *ecmd, pid_t pid, int cmd_type, int background)
 {
     int status, do_fg_bg = 0, wait_flag = WUNTRACED;
+    int chdir_idx = 0;
     pid_t process_control_terminal_id;
     parse_execcmd(ecmd);
 
@@ -431,6 +432,14 @@ int runcmd(char *user_input, pid_t pid)
         background = 1;
     else
         background = 0;
+
+    int chdir_idx = 0;
+    chdir_idx = is_chdir(user_input);
+    if (chdir_idx){
+        remove_spaces(user_input);
+        chdir(user_input + 2);
+        return 0;
+    }
 
     int type_cmd = getcmd_type(delimiter, user_input, DELIMITER_NUM, &delimiter_idx);
     struct cmd *cmd = init_cmd(type_cmd);

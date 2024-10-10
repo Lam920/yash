@@ -65,3 +65,27 @@ char getLastNonSpaceChar(char *str) {
     }
     return '\0';
 }
+
+int is_chdir(char *str) {
+    int i = 0, length = strlen(str);
+    char last_char;
+    for (i = 0; i < length; i--) {
+        if (str[i] == ' ') {
+            continue;
+        }
+        else {
+            printf("First char is not cd\n");
+            break;
+            
+        }
+    }
+    if (i < length - 2){
+        if (str[i] != 'c' || str[i + 1] != 'd'){
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
+    return 0;
+}
